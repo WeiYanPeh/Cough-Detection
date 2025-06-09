@@ -34,3 +34,21 @@ This project detects cough sounds from audio recordings using traditional machin
    git clone https://github.com/WeiYanPeh/Cough-Detection
    cd Cough-Detection
    ```
+
+2. Clone the repository:
+   ```bash
+    pip install -r requirements.txt
+   ```
+
+Usage Guide
+Run the notebooks in the following order:
+- main_0_load_data.ipynb
+- main_1_ML_analyze_data.ipynb
+- main_2_ML_prediction.ipynb
+- main_3_whisper_online_code.ipynb (optional)
+- main_4_whisper_wav_extractor.ipynb
+- main_5_whisper_prediction.ipynb
+- main_6_CNN_analyze_data.ipynb
+-  main_7_CNN_prediction.ipynb
+
+This ensures a smooth workflow from data preparation to final classification.
