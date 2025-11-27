@@ -3,7 +3,15 @@
 ## Overview
 This project detects cough sounds from audio recordings using traditional machine learning models, the Whisper model, and convolutional neural networks (CNN).
 
-## Project Structure
+## Datasets
+- Coswara: [Link Coswara](https://github.com/iiscleap/Coswara-Data)
+- Virufy: [Link Virufy](https://github.com/virufy/virufy-data/tree/main/clinical)
+- COUGHVID: [Link COUGHVID](https://zenodo.org/records/7024894)
+- ESC-50: [Link ESC-50](https://github.com/karolpiczak/ESC-50?tab=readme-ov-file#download)
+- FSDKaggle2018: [Link FSDKaggle2018](https://zenodo.org/records/2552860#.XwscUud7kaE)
+
+
+## Code
 **main_0_load_data.ipynb**: 
 - Load and prepare dataset for standardization
 
