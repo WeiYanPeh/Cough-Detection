@@ -58,9 +58,13 @@ This project detects cough sounds from audio recordings using traditional machin
 Usage Guide
 Run the notebooks in the following order:
 - main_0_load_data.ipynb
-- main_1_ML_analyze_data.ipynb
-- main_2_ML_prediction.ipynb
-- main_3_whisper_online_code.ipynb (optional)
+
+- main_1_binary_ML_features.ipynb
+- main_2_binary_ML_predictions.ipynb
+
+- main_3_CNN_features.ipynb
+- main_4_CNN_predictions.ipynb
+
 - main_4_whisper_wav_extractor.ipynb
 - main_5_whisper_prediction.ipynb
 - main_6_CNN_analyze_data.ipynb
