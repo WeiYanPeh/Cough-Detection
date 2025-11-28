@@ -76,6 +76,13 @@ Run the notebooks in the following order:
 - main_A0_onset_CNN_features.ipynb
 - main_A1_onset_CNN_prediction.ipynb
 
+- main_A2_onset_whisper_extraction.ipynb
+- main_A3_onset_whisper_prediction.ipynb
+
+- main_A4_onset_display.ipynb
+- main_A5_onset_plot_audio.ipynb
+
+- main_check_gpu.ipynb
 
 This ensures a smooth workflow from data preparation to final classification.
 
