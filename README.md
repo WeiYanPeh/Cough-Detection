@@ -60,15 +60,22 @@ Run the notebooks in the following order:
 - main_0_load_data.ipynb
 
 - main_1_binary_ML_features.ipynb
-- main_2_binary_ML_predictions.ipynb
+- main_2_binary_ML_prediction.ipynb
 
-- main_3_CNN_features.ipynb
-- main_4_CNN_predictions.ipynb
+- main_3_binary_CNN_features.ipynb
+- main_4_binary_CNN_prediction.ipynb
 
-- main_4_whisper_wav_extractor.ipynb
-- main_5_whisper_prediction.ipynb
-- main_6_CNN_analyze_data.ipynb
-- main_7_CNN_prediction.ipynb
+- main_5_binary_whisper_wav_extractor.ipynb
+- main_6_binary_whisper_prediction.ipynb
+
+- main_7_onset_plot_audio.ipynb
+
+- main_8_onset_ML_features.ipynb
+- main_9_onset_ML_prediction.ipynb
+
+- main_A0_onset_CNN_features.ipynb
+- main_A1_onset_CNN_prediction.ipynb
+
 
 This ensures a smooth workflow from data preparation to final classification.
 
