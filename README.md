@@ -57,8 +57,11 @@ This project detects cough sounds from audio recordings using traditional machin
 
 Usage Guide
 Run the notebooks in the following order:
-- main_0_load_data.ipynb
 
+1. Load Audio Data
+    ```bash
+    main_0_load_data.ipynb
+    ```
 - main_1_binary_ML_features.ipynb
 - main_2_binary_ML_prediction.ipynb
 

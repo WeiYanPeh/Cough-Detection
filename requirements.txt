@@ -1,12 +1,14 @@
-celery
-matplotlib
+regex
 numpy==1.19.5
 pandas
+matplotlib
+seaborn
+celery
 librosa
 keras
 tensorflow
 imbalanced-learn
-seaborn
+scikit-learn
 moviepy
 pydub
 accelerate -U
@@ -14,12 +16,10 @@ datasets
 transformers[sentencepiece]
 torchvision
 transformers
-regex
 dask
 cloudpickle
 typing_extensions
 threadpoolctl
-scikit-learn
 nvidia-pyindex
 nvidia-tensorrt
 
