@@ -62,30 +62,58 @@ Run the notebooks in the following order:
     ```bash
     main_0_load_data.ipynb
     ```
+
+2. Extract ML features and perform predictions - For Binary Detection
+```bash
 - main_1_binary_ML_features.ipynb
 - main_2_binary_ML_prediction.ipynb
+```
 
+3. Extract MFCC features and perform predictions - For Binary Detection
+```bash
 - main_3_binary_CNN_features.ipynb
 - main_4_binary_CNN_prediction.ipynb
+```
 
+4. Extract Whisper wav format and perform predictions - For Binary Detection
+```bash
 - main_5_binary_whisper_wav_extractor.ipynb
 - main_6_binary_whisper_prediction.ipynb
+```
 
+5. Plot audio for onset detection, and perform automatic cough label extraction - For Onset Detection
+```bash
 - main_7_onset_plot_audio.ipynb
+```
 
+6. Extract ML features and perform predictions - For Onset Detection
+```bash
 - main_8_onset_ML_features.ipynb
 - main_9_onset_ML_prediction.ipynb
+```
 
+7. Extract MFCC features and perform predictions - For Onset Detection
+```bash
 - main_A0_onset_CNN_features.ipynb
 - main_A1_onset_CNN_prediction.ipynb
+```
 
+8. Extract Whisper wav format and perform predictions - For Onset Detection
+```bash
 - main_A2_onset_whisper_extraction.ipynb
 - main_A3_onset_whisper_prediction.ipynb
+```
 
+9. Plot audio for onset detection, with onset model evaluation - For Onset Detection
+```bash
 - main_A4_onset_display.ipynb
 - main_A5_onset_plot_audio.ipynb
+```
 
+10. Check if GPU is detected in TF, Keras, Torch
+```bash
 - main_check_gpu.ipynb
+```
 
 This ensures a smooth workflow from data preparation to final classification.
 
