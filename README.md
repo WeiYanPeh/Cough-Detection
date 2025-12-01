@@ -13,7 +13,6 @@ This project detects cough sounds from audio recordings using traditional machin
     - COUGHVID: [Link COUGHVID](https://zenodo.org/records/7024894)
     - ESC-50: [Link ESC-50](https://github.com/karolpiczak/ESC-50?tab=readme-ov-file#download)
     - FSDKaggle2018: [Link FSDKaggle2018](https://zenodo.org/records/2552860#.XwscUud7kaE)
-
 <br>
 
 **Classification using Traditional Machine Learning (ML) Models**
@@ -47,8 +46,8 @@ This project detects cough sounds from audio recordings using traditional machin
     pip install -r requirements.txt
    ```
 
-Usage Guide
-Run the notebooks in the following order:
+## Usage Guide
+Run notebooks:
 
 1. Load Audio Data
     ```bash
@@ -71,7 +70,7 @@ Run the notebooks in the following order:
     ```bash
     main_5_binary_whisper_wav_extractor.ipynb
     main_6_binary_whisper_prediction.ipynb
-```
+    ```
 
 5. Plot audio for onset detection, and perform automatic cough label extraction - For Onset Detection
     ```bash
