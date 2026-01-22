@@ -1,6 +1,9 @@
 *.pptx
 *.ppt
 *.pdf
+*.m4a
+*.json
+
 models/
 slides/
 data_testing/
