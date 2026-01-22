@@ -1,52 +1,4 @@
-# Convert [[0.7, 2.3]] 
-# into [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-def binary_to_intervals(binary_sequence, time_step=0.1):
-    """Convert a binary sequence to intervals of consecutive 1s in seconds."""
-    intervals = []
-    start = None
-    for i, val in enumerate(binary_sequence):
-        if val == 1 and start is None:
-            start = i
-        elif val == 0 and start is not None:
-            intervals.append([round(start * time_step, 1), round(i * time_step, 1)])
-            start = None
-    if start is not None:
-        intervals.append([round(start * time_step, 1), round(len(binary_sequence) * time_step, 1)])
-    return intervals
-
-# Undo
-# Convert [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-# into [[0.7, 2.3]] 
-def intervals_to_binary(intervals, original_length, time_step=0.1):
-    """Convert time intervals back into a binary sequence and pad to original length."""
-    binary_sequence = [0] * original_length
-    for start, end in intervals:
-        start_index = int(start / time_step)
-        end_index = int(end / time_step)
-        for i in range(start_index, min(end_index, original_length)):
-            binary_sequence[i] = 1
-    return binary_sequence
-
-# Postprocessing
-def merge_close_intervals(intervals, max_gap=0.2):
-    """Merge intervals that are within max_gap seconds of each other."""
-    if not intervals:
-        return []
-
-    intervals.sort(key=lambda x: x[0])
-    merged = [intervals[0]]
-
-    for current in intervals[1:]:
-        previous = merged[-1]
-        if current[0] - previous[1] <= max_gap:
-            merged[-1] = [previous[0], max(previous[1], current[1])]
-        else:
-            merged.append(current)
-
-    return merged
-
-# intervals = [[0.7, 0.8], [1.0, 1.2], [1.3, 2.3]]
-# print(merge_close_intervals(intervals))
+import numpy as np
 
 def compute_overlap(interval1, interval2):
     start1, end1 = interval1
@@ -191,15 +143,11 @@ def total_interval_duration(intervals):
 # print("Total duration:", total_duration)
 
 
-def compute_overlap(interval1, interval2):
-    """Compute the overlap length between two intervals."""
-    start1, end1 = interval1
-    start2, end2 = interval2
-    intersection_start = max(start1, start2)
-    intersection_end = min(end1, end2)
-    return max(0, intersection_end - intersection_start)
 
-def evaluate_intervals(predicted, ground_truth, overlap_threshold=0.1):
+#################################################################################
+# Evaluation
+#################################################################################
+def evaluate_intervals_event_based(predicted, ground_truth, duration, overlap_threshold=0.1):
     """Evaluate detection performance with collective overlap logic and detailed reporting."""
     true_positives = 0
     matched_gt = set()
@@ -232,75 +180,150 @@ def evaluate_intervals(predicted, ground_truth, overlap_threshold=0.1):
     recall = true_positives / (true_positives + false_negatives) if (true_positives + false_negatives) > 0 else 0
     f1_score = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0
 
+    FAR = round(false_positives / duration, 5)
+    FARh = round(false_positives / duration * 3600, 5)
+    
     return {
-        "TP": true_positives,
-        "FP": false_positives,
-        "FN": false_negatives,
-        "PRE": precision,
-        "REC": recall,
-        "F1": f1_score,
-        "TP Contributors": tp_contributors,
-        "False Positive Intervals": fp_intervals,
-        "Matched Ground Truth Intervals": matched_gt_intervals,
-        "Unmatched Ground Truth Intervals": unmatched_gt_intervals
+        "TP_e": true_positives,
+        "FP_e": false_positives,
+        "FN_e": false_negatives,
+        "PRE_e": round(precision, 3),
+        "REC_e": round(recall, 3),
+        "F1_e": round(f1_score, 3),
+
+        'FAR_e': FAR,
+        'FARh_e': FARh,
+        
+        "Event - TP Contributors": tp_contributors, # TP from detector
+        "Event - False Positive Intervals": fp_intervals, # FP
+        "Event - Matched Ground Truth Intervals": matched_gt_intervals, # TP
+        "Event - Unmatched Ground Truth Intervals": unmatched_gt_intervals # FN <- Check
+    }
+
+
+
+def evaluate_intervals_duration_based(predicted, ground_truth, duration):
+    label_pred_interval = predicted
+    label_onset_interval = ground_truth
+    
+    # Get non-cough intervals
+    label_onset_inv_interval = inverse_intervals(label_onset_interval, duration)
+    label_pred_inv_interval = inverse_intervals(label_pred_interval, duration)
+
+    # Get cough and non-cough intersects
+    label_cough_interval_intersect = interval_intersection(label_onset_interval, label_pred_interval)
+    label_non_cough_interval_intersect = interval_intersection(label_onset_inv_interval, label_pred_inv_interval)
+
+    # Get intersection duration
+    total_cough_intersect_duration = round(total_interval_duration(label_cough_interval_intersect), 1) # TP
+    total_non_cough_intersect_duration = round(total_interval_duration(label_non_cough_interval_intersect), 1) # TN
+
+    total_non_cough_duration = round(total_interval_duration(label_onset_inv_interval), 1)
+    total_cough_duration = round(total_interval_duration(label_onset_interval), 1)
+    total_pred_duration = round(total_interval_duration(label_pred_interval), 1)
+
+    FP = total_pred_duration - total_cough_intersect_duration
+    FN = total_cough_duration - total_cough_intersect_duration
+    
+    SENd = round(safe_divide(total_cough_intersect_duration, total_cough_duration), 3)
+    SPEd = round(safe_divide(total_non_cough_intersect_duration, total_non_cough_duration), 3)
+    PREd = round(safe_divide(total_cough_intersect_duration, total_pred_duration), 3)
+    F1d = round(2 * safe_divide((PREd * SENd), (PREd + SENd)), 3)
+
+    FAR = round(FP / duration, 5)
+    FARh = round(FP / duration * 3600, 5)
+    
+    
+    return {        
+        'label_onset_inv_interval': label_onset_inv_interval,
+        'label_pred_inv_interval': label_pred_inv_interval,
+        'label_cough_interval_intersect': label_cough_interval_intersect,
+        'label_non_cough_interval_intersect': label_non_cough_interval_intersect,
+        'total_cough_intersect_duration': total_cough_intersect_duration,
+        'total_non_cough_intersect_duration': total_non_cough_intersect_duration,
+        'total_cough_duration': total_cough_duration,
+        'total_non_cough_duration': total_non_cough_duration,
+        'total_pred_duration': total_pred_duration,
+
+        'TP_d': total_cough_intersect_duration,
+        'FP_d': FP,
+        'FN_d': FN,
+        'TN_d': total_non_cough_intersect_duration,
+        
+        'SEN_d': SENd,
+        'SPE_d': SPEd,
+        'PRE_d': PREd,
+        'F1_d': F1d,
+
+        'FAR_d': FAR,
+        'FARh_d': FARh,
+    }
+
+#################################################################################
+# Compute average and sum metrics
+#################################################################################
+def get_average_metrics(results_all, model_name, segment_length):
+
+    results_all = results_all[results_all['FAR_d'] <= 0.2].reset_index(drop=True)
+    results_all = results_all[results_all['FAR_e'] <= 0.2].reset_index(drop=True)
+    
+    results_dict_avg = {   
+        'model': model_name,
+        'window_length': segment_length,
+        'type': 'avg'
     }
     
-def remove_isolated_detection(sequence, max_length_sequence=1):
-    cleaned_sequence = sequence.copy()
-    i = 0
-    while i < len(sequence):
-        if sequence[i] == 1:
-            start = i
-            while i < len(sequence) and sequence[i] == 1:
-                i += 1
-            end = i
-            if start > 0 and end < len(sequence) and (end - start) <= max_length_sequence:
-                for j in range(start, end):
-                    cleaned_sequence[j] = 0
-        else:
-            i += 1
-    return cleaned_sequence
+    for item in [
+        'SEN_d', 'SPE_d', 'PRE_d', 'FAR_d', 'FARh_d', 
+        'PRE_e', 'REC_e', 'FAR_e', 'FARh_e'
+        ]:
+        if item in ['SEN_d', 'PRE_d', 'PRE_e', 'REC_e']:
+            results_dict_avg[item] = round(np.mean(results_all[results_all['label'] == 1][item]), 3)
+        elif item in ['FAR_e', 'FAR_e', 'FAR_e', 'FARh_e']:
+            results_dict_avg[item] = round(np.mean(results_all[item]), 5)
+        else: #  'SPE_d',
+            results_dict_avg[item] = round(np.mean(results_all[item]), 3)
+    
+    results_dict_avg['F1_d'] = round(2 * results_dict_avg['SEN_d'] * results_dict_avg['PRE_d'] / (results_dict_avg['SEN_d'] + results_dict_avg['PRE_d']), 3)
+    results_dict_avg['F1_e'] = round(2 * results_dict_avg['REC_e'] * results_dict_avg['PRE_e'] / (results_dict_avg['REC_e'] + results_dict_avg['PRE_e']), 3)
+    return results_dict_avg
 
-def fill_short_gaps(sequence, threshold=1):
-    '''
-    Fill short gaps of 0s between 1s in a binary sequence.
+def get_sum_metrics(results_all, model_name, segment_length):
 
-    If a gap of 0s between two 1s is less than or equal to `threshold`, 
-    the gap is replaced with 1s.
-
-    Parameters:
-        sequence (list): Binary list of 0s and 1s.
-        threshold (int): Max gap length to fill (default is 1).
-
-    Returns:
-        list: Modified sequence with short gaps filled.
-
-    Example:
-        fill_short_gaps([1, 0, 1], threshold=1) → [1, 1, 1]
-    '''
-    filled_sequence = sequence.copy()
-    i = 0
-    while i < len(sequence):
-        if sequence[i] == 1:
-            start = i
-            i += 1
-            while i < len(sequence) and sequence[i] == 0:
-                i += 1
-            end = i
-            if end < len(sequence) and (end - start - 1) <= threshold:
-                for j in range(start + 1, end):
-                    filled_sequence[j] = 1
-        else:
-            i += 1
-    return filled_sequence
-
-
-def remove_mean_threshold(label_pred, list_threshold_mean):
-    n = len(label_pred)
-    for i in range(n):
-        if list_threshold_mean[i] == 0:
-            label_pred[i] = 0
-    return label_pred
+    results_all = results_all[results_all['FAR_d'] <= 0.2].reset_index(drop=True)
+    results_all = results_all[results_all['FAR_e'] <= 0.2].reset_index(drop=True)
+    
+    results_dict_sum = {
+        'model': model_name,
+        'window_length': segment_length,
+        'type': 'sum'
+    }
+    
+    duration_total = np.sum(results_all['duration'])
+    
+    # Duration based
+    TP_d = np.sum(results_all['TP_d'])
+    
+    results_dict_sum['SEN_d'] = round(np.sum(results_all['total_cough_intersect_duration']) / np.sum(results_all['total_cough_duration']), 3)
+    results_dict_sum['SPE_d'] = round(np.sum(results_all['total_non_cough_intersect_duration']) / np.sum(results_all['total_non_cough_duration']), 3)
+    results_dict_sum['PRE_d'] = round(np.sum(results_all['total_cough_intersect_duration']) / np.sum(results_all['total_pred_duration']), 3)
+    results_dict_sum['F1_d'] = round(2 * (results_dict_sum['PRE_d'] * results_dict_sum['SEN_d']) / (results_dict_sum['PRE_d'] + results_dict_sum['SEN_d']), 3)
+    
+    results_dict_sum['FAR_d'] = round(TP_d / duration_total, 5)
+    results_dict_sum['FARh_d'] = round(TP_d / duration_total * 3600, 5)
+    
+    # Event based
+    TP_e = np.sum(results_all['TP_e'])
+    FP_e = np.sum(results_all['FP_e'])
+    FN_e = np.sum(results_all['FN_e'])
+    
+    results_dict_sum['PRE_e'] = round(TP_e / (TP_e + FP_e), 3)
+    results_dict_sum['REC_e'] = round(TP_e / (TP_e + FN_e), 3)
+    results_dict_sum['F1_e'] = round(2 * (results_dict_sum['PRE_e'] * results_dict_sum['REC_e']) / (results_dict_sum['PRE_e'] + results_dict_sum['REC_e']), 3)
+    
+    results_dict_sum['FAR_e'] = round(TP_e / duration_total, 5)
+    results_dict_sum['FARh_e'] = round(TP_e / duration_total * 3600, 5)
+    return results_dict_sum
 
 def safe_divide(numerator, denominator):
     """
@@ -309,21 +332,6 @@ def safe_divide(numerator, denominator):
     if denominator <= 0:
         return 0
     return round(numerator / denominator, 3)
-
-# Example usage
-# predicted_intervals = [[1, 4], [8, 11], [40, 45], [46, 50]]
-# ground_truth_intervals = [[2, 5], [9, 12], [39, 44], [50, 54]]
-
-# Example usage
-# predicted_intervals = [[1, 5], [15, 20]]
-# ground_truth_intervals = [[0, 20]]
-# threshold_overlap = 0.1  # 10% overlap required
-
-# metrics = evaluate_intervals(predicted_intervals, ground_truth_intervals, overlap_threshold=threshold_overlap)
-# for key, value in metrics.items():
-#     print(f"{key}: {value}")
-
-
 
 
 
