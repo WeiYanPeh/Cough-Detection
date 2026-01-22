@@ -1,18 +1,62 @@
 import numpy as np
 
+#################################################################################
 def compute_overlap(interval1, interval2):
+    """
+    Compute the overlap length between two intervals.
+
+    Parameters:
+        interval1 (list or tuple): [start1, end1] of the first interval.
+        interval2 (list or tuple): [start2, end2] of the second interval.
+
+    Returns:
+        float: Length of the overlapping region. Returns 0 if no overlap.
+    """
+    
     start1, end1 = interval1
     start2, end2 = interval2
     return max(0, min(end1, end2) - max(start1, start2))
 
+
+#################################################################################
 def total_overlap_duration(predicted, ground_truth):
+    """
+    Compute the total overlap duration between predicted and ground truth intervals.
+
+    For each ground truth interval, sums the overlapping durations with all predicted intervals.
+
+    Parameters:
+        predicted (list of lists/tuples): List of predicted [start, end] intervals.
+        ground_truth (list of lists/tuples): List of ground truth [start, end] intervals.
+
+    Returns:
+        float: Total overlapping duration in the same units as the intervals.
+    """
+    
     overlap = 0
     for gt in ground_truth:
         for pred in predicted:
             overlap += compute_overlap(gt, pred)
     return overlap
 
+
+#################################################################################
 def subtract_intervals(base, subtracting):
+    """
+    Subtract a list of intervals from a base list of intervals.
+
+    For each interval in `base`, any overlapping portions with intervals
+    in `subtracting` are removed. The result is a list of non-overlapping
+    intervals.
+
+    Parameters:
+        base (list of tuples): List of base intervals [(start, end), ...].
+        subtracting (list of tuples): List of intervals to subtract.
+
+    Returns:
+        list of tuples: List of intervals after subtraction.
+    """
+    
     result = []
     for b_start, b_end in base:
         current = [(b_start, b_end)]
@@ -30,10 +74,44 @@ def subtract_intervals(base, subtracting):
         result.extend(current)
     return result
 
+
+#################################################################################
 def total_duration(intervals):
+    """
+    Compute the total duration covered by a list of intervals.
+
+    Parameters:
+        intervals (list of tuples/lists): List of intervals [(start, end), ...].
+
+    Returns:
+        float: Sum of durations of all intervals (end - start).
+    """
     return sum(end - start for start, end in intervals)
 
+
+#################################################################################
 def overlap_calculations(predicted_intervals, ground_truth_intervals):
+    """
+    Compute overlap metrics between predicted and ground truth intervals.
+
+    This function calculates:
+      - Total overlapping duration
+      - Duration of ground truth events not detected (missed)
+      - Duration of predicted events not matched (false positives)
+
+    Parameters:
+        predicted_intervals (list of tuples/lists): Predicted [start, end] intervals.
+        ground_truth_intervals (list of tuples/lists): Ground truth [start, end] intervals.
+
+    Returns:
+        dict: Metrics rounded to 2 decimal places:
+            {
+                "Total Overlap Duration (seconds)": float,
+                "Total Cough Not Detected Duration (seconds)": float,
+                "Total FP Duration (seconds)": float
+            }
+    """
+    
     # Calculations
     overlap_duration = total_overlap_duration(predicted_intervals, ground_truth_intervals)
     gt_not_detected = subtract_intervals(ground_truth_intervals, predicted_intervals)
@@ -59,6 +137,7 @@ def overlap_calculations(predicted_intervals, ground_truth_intervals):
 #     print(f"{key}: {value}")
 
 
+#################################################################################
 def inverse_intervals(labels, duration):
     """
     Compute the inverse of intervals within a fixed duration.
@@ -85,6 +164,8 @@ def inverse_intervals(labels, duration):
 # print(inverse_intervals(labels, duration))
 # Output: [[0, 1], [3, 10]]
 
+
+#################################################################################
 def interval_intersection(intervals1, intervals2):
     """
     Compute the intersection of two lists of intervals.
@@ -125,6 +206,8 @@ def interval_intersection(intervals1, intervals2):
 # intersection = interval_intersection(label_onset_inv_interval, label_pred_inv_interval)
 # print("Intersection:", intersection)
 
+
+#################################################################################
 def total_interval_duration(intervals):
     """
     Calculate the total duration covered by a list of intervals.
@@ -148,7 +231,33 @@ def total_interval_duration(intervals):
 # Evaluation
 #################################################################################
 def evaluate_intervals_event_based(predicted, ground_truth, duration, overlap_threshold=0.1):
-    """Evaluate detection performance with collective overlap logic and detailed reporting."""
+    """
+    Evaluate event-based detection performance between predicted and ground truth intervals.
+
+    Each ground truth event is considered detected (TP) if the total overlap with predicted
+    events exceeds the overlap_threshold fraction of the ground truth duration.
+
+    Parameters:
+        predicted (list of [start, end]): Predicted intervals.
+        ground_truth (list of [start, end]): Ground truth intervals.
+        duration (float): Total duration of the recording (seconds) for FAR calculation.
+        overlap_threshold (float): Minimum fraction of GT overlap to count as a true positive.
+
+    Returns:
+        dict: Detailed event-based metrics and intervals:
+            - TP_e: Number of true positives
+            - FP_e: Number of false positives
+            - FN_e: Number of false negatives
+            - PRE_e: Precision
+            - REC_e: Recall
+            - F1_e: F1 score
+            - FAR_e: False alarm rate (per second)
+            - FARh_e: False alarm rate (per hour)
+            - Event - TP Contributors: List of predicted intervals contributing to TPs
+            - Event - False Positive Intervals: Predicted intervals not contributing to TPs
+            - Event - Matched Ground Truth Intervals: GT intervals matched (TP)
+            - Event - Unmatched Ground Truth Intervals: GT intervals not matched (FN)
+    """
     true_positives = 0
     matched_gt = set()
     tp_contributors = []
@@ -201,8 +310,33 @@ def evaluate_intervals_event_based(predicted, ground_truth, duration, overlap_th
     }
 
 
-
+#################################################################################
 def evaluate_intervals_duration_based(predicted, ground_truth, duration):
+    """
+    Evaluate interval-based detection performance using duration-based metrics.
+
+    This method computes how much of the total duration is correctly or incorrectly
+    predicted as events (e.g., coughs) and non-events, giving TP, TN, FP, FN, and
+    derived metrics such as sensitivity, specificity, precision, F1 score, and
+    false alarm rates.
+
+    Parameters:
+        predicted (list of [start, end]): Predicted event intervals.
+        ground_truth (list of [start, end]): Ground truth event intervals.
+        duration (float): Total recording duration in seconds.
+
+    Returns:
+        dict: Duration-based metrics and interval information, including:
+            - TP_d, FP_d, FN_d, TN_d: True/False Positive/Negative durations
+            - SEN_d: Sensitivity (Recall)
+            - SPE_d: Specificity
+            - PRE_d: Precision
+            - F1_d: F1 score
+            - FAR_d: False Alarm Rate (per second)
+            - FARh_d: False Alarm Rate per hour
+            - Detailed interval intersections for analysis
+    """
+    
     label_pred_interval = predicted
     label_onset_interval = ground_truth
     
@@ -263,6 +397,27 @@ def evaluate_intervals_duration_based(predicted, ground_truth, duration):
 # Compute average and sum metrics
 #################################################################################
 def get_average_metrics(results_all, model_name, segment_length):
+    """
+    Compute average performance metrics for a model across multiple recordings or segments.
+
+    This function filters out outlier results with excessively high false alarm rates,
+    then calculates mean metrics for both duration-based (d) and event-based (e) evaluation.
+
+    Parameters:
+        results_all (pd.DataFrame): DataFrame containing evaluation results with columns such as
+                                    'SEN_d', 'SPE_d', 'PRE_d', 'FAR_d', 'FARh_d',
+                                    'PRE_e', 'REC_e', 'FAR_e', 'FARh_e', and 'label'.
+        model_name (str): Name of the model being evaluated.
+        segment_length (float/int): Length of the segment/window for evaluation.
+
+    Returns:
+        dict: Dictionary with averaged metrics and metadata:
+              - 'model': model name
+              - 'window_length': segment length
+              - 'type': 'avg'
+              - Duration-based metrics: SEN_d, SPE_d, PRE_d, F1_d, FAR_d, FARh_d
+              - Event-based metrics: PRE_e, REC_e, F1_e, FAR_e, FARh_e
+    """
 
     results_all = results_all[results_all['FAR_d'] <= 0.2].reset_index(drop=True)
     results_all = results_all[results_all['FAR_e'] <= 0.2].reset_index(drop=True)
@@ -288,8 +443,31 @@ def get_average_metrics(results_all, model_name, segment_length):
     results_dict_avg['F1_e'] = round(2 * results_dict_avg['REC_e'] * results_dict_avg['PRE_e'] / (results_dict_avg['REC_e'] + results_dict_avg['PRE_e']), 3)
     return results_dict_avg
 
-def get_sum_metrics(results_all, model_name, segment_length):
 
+#################################################################################
+def get_sum_metrics(results_all, model_name, segment_length):
+    """
+    Compute summed/aggregated performance metrics across multiple recordings or segments.
+
+    Unlike average metrics, this method aggregates totals first and then computes
+    derived metrics from the summed values. This is useful for weighted evaluation
+    over recordings of different durations.
+
+    Parameters:
+        results_all (pd.DataFrame): DataFrame containing evaluation results with columns such as
+                                    'TP_d', 'FP_e', 'total_cough_duration', etc.
+        model_name (str): Name of the model being evaluated.
+        segment_length (float/int): Length of the segment/window for evaluation.
+
+    Returns:
+        dict: Dictionary with summed metrics and metadata:
+              - 'model': model name
+              - 'window_length': segment length
+              - 'type': 'sum'
+              - Duration-based metrics: SEN_d, SPE_d, PRE_d, F1_d, FAR_d, FARh_d
+              - Event-based metrics: PRE_e, REC_e, F1_e, FAR_e, FARh_e
+    """
+    
     results_all = results_all[results_all['FAR_d'] <= 0.2].reset_index(drop=True)
     results_all = results_all[results_all['FAR_e'] <= 0.2].reset_index(drop=True)
     
@@ -325,12 +503,27 @@ def get_sum_metrics(results_all, model_name, segment_length):
     results_dict_sum['FARh_e'] = round(TP_e / duration_total * 3600, 5)
     return results_dict_sum
 
+
+#################################################################################
 def safe_divide(numerator, denominator):
     """
-    Safely divide two numbers, returning 0 if denominator is zero or negative.
+    Safely divide two numbers, avoiding division by zero or negative denominators.
+
+    This is useful for metric calculations like precision, recall, or F1 score,
+    where the denominator can sometimes be zero due to no predicted or actual events.
+
+    Parameters:
+        numerator (float): The numerator of the division.
+        denominator (float): The denominator of the division.
+
+    Returns:
+        float: The division result rounded to 3 decimal places.
+               Returns 0 if the denominator is zero or negative.
     """
+    
     if denominator <= 0:
         return 0
+    
     return round(numerator / denominator, 3)
 
 

@@ -1,13 +1,7 @@
 import warnings
 warnings.filterwarnings('ignore')
 
-import glob
-import io
-import datasets
-import os
 import time
-import json
-import csv
 
 import pandas as pd
 import numpy as np
@@ -43,6 +37,9 @@ from sklearn.metrics import f1_score, classification_report, accuracy_score
 
 from transformers import WhisperModel, WhisperFeatureExtractor, AdamW
 
+#################################################################################
+# Audio Dataset
+#################################################################################
 class SpeechClassificationDataset(torch.utils.data.Dataset):
     def __init__(self, audio_data,  text_processor, encoder):
         self.audio_data = audio_data
@@ -67,6 +64,10 @@ class SpeechClassificationDataset(torch.utils.data.Dataset):
 
         return input_features, decoder_input_ids, torch.tensor(labels)
 
+
+#################################################################################
+# Whisper Classifier
+#################################################################################
 class SpeechClassifier(nn.Module):
     def __init__(self, num_labels, encoder):
         super(SpeechClassifier, self).__init__()
@@ -90,8 +91,9 @@ class SpeechClassifier(nn.Module):
         return logits
 
 
+#################################################################################
 # Define the training function
-
+#################################################################################
 def train(model, train_loader, val_loader, optimizer, criterion, device, num_epochs, path_model_save):
     best_accuracy = 0.0
 
@@ -129,6 +131,9 @@ def train(model, train_loader, val_loader, optimizer, criterion, device, num_epo
         print("========================================================================================")
 
 
+#################################################################################
+# Evaluate
+#################################################################################
 def evaluate(model, data_loader, optimizer, criterion, device):
     all_labels = []
     all_preds = []

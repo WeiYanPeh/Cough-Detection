@@ -1,8 +1,9 @@
 import warnings
 warnings.filterwarnings('ignore')
-warnings.filterwarnings("ignore", category=UserWarning, message=".*saving your model as an HDF5 file.*")
+warnings.filterwarnings("ignore", 
+                        category=UserWarning, 
+                        message=".*saving your model as an HDF5 file.*")
 
-import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -17,13 +18,37 @@ from sklearn.metrics import (
 from tensorflow import keras
 from tensorflow.keras.regularizers import l2
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Conv2D, Flatten, Dense, MaxPool2D, Dropout, BatchNormalization, MaxPooling2D
-from tensorflow.keras.utils import to_categorical 
-from tensorflow.keras.callbacks import Callback
+from tensorflow.keras.layers import (
+    Conv2D, 
+    Flatten, 
+    Dense,
+    Dropout, 
+    BatchNormalization, 
+    MaxPooling2D
+    )
 
 
 #################################################################################
 def get_CNN_model(input_shape):
+    """
+    Build and compile a Convolutional Neural Network (CNN) for binary classification.
+
+    Architecture:
+        - Two convolutional blocks:
+            Block 1: Conv2D(32) -> Conv2D(32) -> MaxPooling2D
+            Block 2: Conv2D(64) -> Conv2D(64) -> MaxPooling2D
+        - Flatten layer to convert 2D feature maps to 1D
+        - Fully connected (dense) layers: 256 -> 128
+        - Output layer with 2 units and softmax activation
+        - L2 regularization on dense layers
+
+    Parameters:
+        input_shape (tuple): Shape of input data (height, width, channels).
+
+    Returns:
+        keras.models.Sequential: Compiled CNN model ready for training.
+    """
+    
     model = Sequential()
     
     # Convolutional layers with padding='same'
@@ -51,6 +76,24 @@ def get_CNN_model(input_shape):
 
 #################################################################################
 def get_NN_model(input_length):
+    """
+    Build and compile a fully connected (dense) neural network for binary classification.
+
+    Architecture:
+        - 4 hidden layers with decreasing size: 512 -> 256 -> 128 -> 64
+        - ReLU activation for hidden layers
+        - Batch normalization after each hidden layer
+        - Dropout (0.3) for regularization
+        - L2 weight regularization on some hidden layers
+        - Output layer with 2 units and softmax activation for binary classification
+
+    Parameters:
+        input_length (int): Number of input features (size of input vector).
+
+    Returns:
+        keras.models.Sequential: Compiled Keras model ready for training.
+    """
+    
     model = Sequential()
     
     model.add(Dense(512, activation='relu', input_shape=(input_length,)))
@@ -81,6 +124,17 @@ def get_NN_model(input_length):
 
 #################################################################################
 def history_loss_acc(history):
+    """
+    Plot training and validation accuracy and loss over epochs for a Keras model.
+
+    Parameters:
+        history (keras.callbacks.History): History object returned by model.fit().
+                                           Contains training and validation metrics.
+
+    Returns:
+        None: The function generates plots but does not return any values.
+    """
+    
     # Create subplots
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 3))
     
@@ -106,6 +160,19 @@ def history_loss_acc(history):
 
 #################################################################################
 def evaluate_matrix(y_test, y_predict):
+    """
+    Compute and visualize the confusion matrix for binary classification.
+
+    Parameters:
+        y_test (array-like): True binary labels (0 or 1).
+        y_predict (array-like): Predicted binary labels (0 or 1).
+
+    Returns:
+        numpy.ndarray: Confusion matrix as a 2x2 array.
+                       [[TN, FP],
+                        [FN, TP]]
+    """
+    
     cm = confusion_matrix(y_test, y_predict)
     cm_df = pd.DataFrame(
         cm, 
@@ -141,6 +208,20 @@ def evaluate_matrix(y_test, y_predict):
 
 #################################################################################
 def ROC_PR_curve(y_test, predictions):
+    """
+    Compute and plot ROC and Precision-Recall curves for a binary classifier.
+
+    Parameters:
+        y_test (array-like): True binary labels (0 or 1).
+        predictions (numpy array): Predicted probabilities for each class. 
+                                   Shape should be (n_samples, 2) with column 1 being positive class probability.
+
+    Returns:
+        tuple: 
+            roc_auc (float): Area under the ROC curve.
+            pr_auc (float): Area under the Precision-Recall curve.
+    """
+    
     # Calculate roc curves
     lr_fpr, lr_tpr, _ = roc_curve(y_test, predictions[:,1])
     roc_auc = auc(lr_fpr, lr_tpr)
@@ -182,7 +263,6 @@ def ROC_PR_curve(y_test, predictions):
     plt.title('Precision-Recall Curve')
     plt.legend(loc="lower left")
     plt.tight_layout()
-    # plt.show()
     plt.close()
     
     return roc_auc, pr_auc

@@ -1,0 +1,18 @@
+{
+    "study": "Formal Testing",
+    "site": "Formal Testing",
+    "subject_id": "S001",
+    "session_id": "20260108115951",
+    "session_start": "2026-01-08 11:59:51",
+    "session_end": "2026-01-08 12:12:35",
+    "timezone": "-05",
+    "segments": [
+        {
+            "segment_number": 1,
+            "start": "2026-01-08 11:59:51",
+            "end": "2026-01-08 12:12:35",
+            "file": "S001_20260108115951_2026-01-08_11-59_2026-01-08_12-12_1_of_1.m4a"
+        }
+    ],
+    "paused_intervals": []
+}

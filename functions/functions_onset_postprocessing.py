@@ -1,9 +1,20 @@
 import numpy as np
 
-
-
+#################################################################################
 def split_time_series(series, n):
-    """Split a time series into n equal intervals."""
+    """
+    Split a time series into n equal (or near-equal) intervals.
+
+    If the length of the series is not perfectly divisible by n,
+    any remaining elements are appended to the last interval.
+
+    Parameters:
+        series (list): Time series data.
+        n (int): Number of intervals to split the series into.
+
+    Returns:
+        list of lists: The split time series intervals.
+    """
     length = len(series)
     interval_size = length // n
     intervals = [series[i * interval_size : (i + 1) * interval_size] for i in range(n)]
@@ -19,8 +30,21 @@ def split_time_series(series, n):
 
 # Convert [[0.7, 2.3]] 
 # into [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+#################################################################################
 def binary_to_intervals(binary_sequence, time_step=0.1):
-    """Convert a binary sequence to intervals of consecutive 1s in seconds."""
+    """
+    Convert a binary sequence into time intervals of consecutive 1s.
+
+    Each continuous run of 1s is converted into a [start, end] interval
+    expressed in seconds using the given time_step.
+
+    Parameters:
+        binary_sequence (list): Binary sequence (0s and 1s).
+        time_step (float): Time resolution used to convert indices to time.
+
+    Returns:
+        list of lists: List of [start, end] time intervals.
+    """
     intervals = []
     start = None
     for i, val in enumerate(binary_sequence):
@@ -33,11 +57,26 @@ def binary_to_intervals(binary_sequence, time_step=0.1):
         intervals.append([round(start * time_step, 1), round(len(binary_sequence) * time_step, 1)])
     return intervals
 
+
 # Undo
 # Convert [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 # into [[0.7, 2.3]] 
+#################################################################################
 def intervals_to_binary(intervals, original_length, time_step=0.1):
-    """Convert time intervals back into a binary sequence and pad to original length."""
+    """
+    Convert time intervals into a binary sequence and pad to the original length.
+
+    Each interval [start, end] is mapped to indices in the binary sequence
+    based on the given time_step.
+
+    Parameters:
+        intervals (list of lists): List of [start, end] time intervals.
+        original_length (int): Desired length of the output binary sequence.
+        time_step (float): Time resolution for converting time to indices.
+
+    Returns:
+        list: Binary sequence where 1 indicates presence within an interval.
+    """
     binary_sequence = [0] * original_length
     for start, end in intervals:
         start_index = int(start / time_step)
@@ -46,9 +85,20 @@ def intervals_to_binary(intervals, original_length, time_step=0.1):
             binary_sequence[i] = 1
     return binary_sequence
 
+#################################################################################
 # Postprocessing
+#################################################################################
 def merge_close_intervals(intervals, max_gap=0.2):
-    """Merge intervals that are within max_gap seconds of each other."""
+    """
+    Merge time intervals that are separated by at most max_gap seconds.
+
+    Parameters:
+        intervals (list of lists): List of [start, end] intervals.
+        max_gap (float): Maximum allowed gap between intervals to merge.
+
+    Returns:
+        list of lists: Merged intervals.
+    """
     if not intervals:
         return []
 
@@ -67,7 +117,7 @@ def merge_close_intervals(intervals, max_gap=0.2):
 # intervals = [[0.7, 0.8], [1.0, 1.2], [1.3, 2.3]]
 # print(merge_close_intervals(intervals))
 
-
+#################################################################################
 def inverse_intervals(labels, duration):
     """
     Compute the inverse of intervals within a fixed duration.
@@ -100,7 +150,20 @@ def inverse_intervals(labels, duration):
 # Postprocessing
 #################################################################################
 def remove_isolated_detection(sequence, max_length_sequence=1):
+    """
+    Remove short isolated sequences of 1s from a binary sequence.
 
+    Any consecutive run of 1s whose length is less than or equal to
+    max_length_sequence and that is surrounded by 0s will be replaced with 0s.
+
+    Parameters:
+        sequence (list): A list of binary values (0s and 1s).
+        max_length_sequence (int): Maximum length of a 1-sequence to be removed.
+
+    Returns:
+        list: A cleaned sequence with isolated detections removed.
+    """
+    
     if max_length_sequence == 0:
         return sequence
 
@@ -119,6 +182,8 @@ def remove_isolated_detection(sequence, max_length_sequence=1):
             i += 1
     return cleaned_sequence
 
+
+#################################################################################
 def fill_short_gaps(sequence, threshold=1):
     '''
     Fill short gaps of 0s between 1s in a binary sequence.
@@ -152,8 +217,18 @@ def fill_short_gaps(sequence, threshold=1):
             i += 1
     return filled_sequence
 
-
+#################################################################################
 def remove_amplitude_threshold(label_pred, list_amplitude_mean):
+    """
+    Suppress predictions where the corresponding amplitude mean is zero.
+
+    Parameters:
+        label_pred (list): Predicted binary labels.
+        list_amplitude_mean (list): Mean amplitude values aligned with labels.
+
+    Returns:
+        list: Updated label_pred with low-amplitude predictions removed.
+    """
     n = len(label_pred)
     for i in range(n):
         if list_amplitude_mean[i] == 0:
@@ -161,7 +236,21 @@ def remove_amplitude_threshold(label_pred, list_amplitude_mean):
     return label_pred
 
 
+#################################################################################
 def mean_filter_same_length(arr, n):
+    """
+    Apply a moving average (mean) filter while preserving the original array length.
+
+    The filter is symmetric and uses edge padding. If the filtered value is
+    lower than the original value, the original value is retained.
+
+    Parameters:
+        arr (array-like): Input numeric array.
+        n (int): Length of the mean filter window (must be odd).
+
+    Returns:
+        array-like: Filtered array with the same length as the input.
+    """
     # Ensure n is odd for symmetric filtering
     if n % 2 == 0:
         raise ValueError("Filter length n must be odd to maintain symmetry.")

@@ -116,6 +116,7 @@ def extract_features(segment, sr):
 
 #################################################################################
 # Function to process each row and extract features
+#################################################################################
 def process_row(i, df_all, segment_length, overlap):
     results = []
     
@@ -179,6 +180,7 @@ def extract_features_CNN(segment, sr, segment_length):
 
 #################################################################################
 # Function to process each row and extract features
+#################################################################################
 def process_CNN_row(i, df_all, segment_length, overlap):
     results = []
     
