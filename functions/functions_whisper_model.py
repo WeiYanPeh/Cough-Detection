@@ -3,39 +3,18 @@ warnings.filterwarnings('ignore')
 
 import time
 
-import pandas as pd
 import numpy as np
 
 from tqdm.notebook import tqdm
-from collections import Counter
-from pprint import pprint
 
-from sklearn.metrics import (
-    classification_report, 
-    confusion_matrix, 
-    accuracy_score,
-    roc_curve,
-    roc_auc_score, 
-    precision_recall_curve,
-    auc,
-    precision_score, 
-    recall_score, 
-    f1_score
-    )
+from sklearn.metrics import (accuracy_score, f1_score)
 
 import torch.utils.data
-from torch.utils.data import Dataset, DataLoader
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
-from datasets import load_dataset, DatasetDict,  Audio
-
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import f1_score, classification_report, accuracy_score
-
-from transformers import WhisperModel, WhisperFeatureExtractor, AdamW
+from sklearn.metrics import f1_score, accuracy_score
 
 #################################################################################
 # Audio Dataset
@@ -124,7 +103,6 @@ def train(model, train_loader, val_loader, optimizer, criterion, device, num_epo
         if val_accuracy > best_accuracy:
             best_accuracy = val_accuracy
             torch.save(model.state_dict(), path_model_save)
-
 
         print("========================================================================================")
         print(f'Epoch {epoch+1}/{num_epochs}, Val Loss: {val_loss:.4f}, Val Accuracy: {val_accuracy:.4f}, Val F1: {val_f1:.4f}, Best Accuracy: {best_accuracy:.4f}')

@@ -1,25 +1,26 @@
 import warnings
 warnings.filterwarnings('ignore')
 
-import os
-import time
-import json
-import csv
 import librosa
-import librosa.display
 import scipy.stats
 from scipy.stats import skew, kurtosis
-from scipy.signal import hilbert
 
-import pandas as pd
 import numpy as np
 
-from tqdm.notebook import tqdm
-from collections import Counter
-from pprint import pprint
 
 #################################################################################
 def pad_array(array, target_length):
+    """
+    Pad a 1D NumPy array with zeros to reach a specified target length.
+
+    Parameters:
+        array (np.ndarray): Input 1D array to pad.
+        target_length (int): Desired length after padding.
+
+    Returns:
+        np.ndarray: Zero-padded array of length `target_length`.
+                    If `array` is already longer, it is returned unchanged.
+    """
     return np.pad(array, (0, max(0, target_length - len(array))), 'constant')
 
 #################################################################################
@@ -29,6 +30,19 @@ def split_audio(
         segment_length=10.0, # Segment length 1s
         overlap=0 # Overlap 50%
     ):
+    """
+    Split a 1D audio signal into fixed-length segments with optional overlap.
+
+    Parameters:
+        y (np.ndarray): Input audio signal (1D array).
+        sr (int): Sample rate of the audio signal.
+        segment_length (float): Desired segment length in seconds (default 10s).
+        overlap (float): Fraction of overlap between consecutive segments (0.0 means no overlap).
+
+    Returns:
+        list of np.ndarray: List containing segments of the original audio.
+    """
+    
     # Calculate the number of samples per segment
     segment_samples = int(segment_length * sr)
     
@@ -52,8 +66,18 @@ def split_audio(
 #################################################################################
 def mean_variance_normalize(audio_waveform):
     """
-    Normalise a 1D NumPy array representing audio waveform using mean-variance scaling.
-    Output will have mean 0 and standard deviation 1.
+    Normalize a 1D NumPy array representing an audio waveform using mean-variance scaling.
+
+    This process ensures that the waveform has:
+        - Mean = 0
+        - Standard deviation = 1
+
+    Parameters:
+        audio_waveform (np.ndarray): 1D array of audio samples.
+
+    Returns:
+        np.ndarray: Normalized waveform with zero mean and unit variance.
+                    If the input has zero variance, returns a zero array.
     """
     mean = np.mean(audio_waveform)
     std = np.std(audio_waveform)
@@ -67,6 +91,22 @@ def mean_variance_normalize(audio_waveform):
 
 #################################################################################
 def extract_features(segment, sr):
+    """
+    Extract a comprehensive set of features from a 1D audio segment.
+
+    Features include:
+      - Time-domain: mean, variance, std, max, min, RMS, skewness, kurtosis, median, range, IQR, ZCR, energy, RMSE
+      - Frequency-domain: spectral centroid, bandwidth, contrast, flatness, rolloff, chroma
+      - MFCCs: mean and std for each coefficient
+      - Entropy of the segment
+
+    Parameters:
+        segment (np.ndarray): 1D audio signal segment
+        sr (int): Sampling rate of the segment
+
+    Returns:
+        list: Feature vector representing the segment
+    """
     segment = mean_variance_normalize(segment) # Normalize
     
     # Time domain features
@@ -118,6 +158,22 @@ def extract_features(segment, sr):
 # Function to process each row and extract features
 #################################################################################
 def process_row(i, df_all, segment_length, overlap):
+    """
+    Process a single row of the DataFrame containing audio file information,
+    split the audio into segments, extract features for each segment, and
+    return a list of feature vectors.
+
+    Parameters:
+        i (int): Index of the row in the DataFrame.
+        df_all (pd.DataFrame): DataFrame containing audio metadata and labels.
+        segment_length (float): Length of each audio segment in seconds.
+        overlap (float): Fractional overlap between consecutive segments.
+
+    Returns:
+        list: List of feature vectors (one per segment). Each feature vector
+              includes metadata, segment info, and extracted features.
+    """
+    
     results = []
     
     filepath = df_all['filepath'][i] # Audio path
@@ -161,6 +217,20 @@ def process_row(i, df_all, segment_length, overlap):
 
 #################################################################################
 def extract_features_CNN(segment, sr, segment_length):
+    """
+    Extract log-mel spectrogram features from an audio segment for CNN input.
+
+    Parameters:
+        segment (np.ndarray): 1D audio segment
+        sr (int): Sampling rate of the segment
+        segment_length (float): Length of the segment in seconds, used to adjust hop_length
+
+    Returns:
+        tuple:
+            - segment_output (list): Flattened log-mel spectrogram (for ML input)
+            - segment_shape (tuple): Shape of the original log-mel spectrogram (n_mels, time_frames)
+    """
+    
     segment = mean_variance_normalize(segment) # Normalize
 
     if segment_length < 1:
@@ -174,7 +244,6 @@ def extract_features_CNN(segment, sr, segment_length):
         
     segment_shape = log_mel_spec.shape
     segment_output = list(log_mel_spec.flatten())
-    # print(segment_shape)
 
     return segment_output, segment_shape
 
@@ -182,12 +251,34 @@ def extract_features_CNN(segment, sr, segment_length):
 # Function to process each row and extract features
 #################################################################################
 def process_CNN_row(i, df_all, segment_length, overlap):
+    """
+    Process a single row of a DataFrame for CNN feature extraction.
+
+    This function:
+    - Loads the audio file.
+    - Splits it into segments with optional overlap.
+    - Pads each segment to a fixed length.
+    - Extracts log-mel spectrogram features for CNN input.
+    - Returns a list of feature vectors along with the feature length.
+
+    Parameters:
+        i (int): Index of the row in df_all.
+        df_all (pd.DataFrame): DataFrame containing audio metadata and labels.
+        segment_length (float): Length of each segment in seconds.
+        overlap (float): Fractional overlap between consecutive segments.
+
+    Returns:
+        tuple:
+            - results (list): List of feature vectors for each segment.
+              Each vector contains metadata, segment info, shape info, and flattened log-mel spectrogram.
+            - feature_length (int or None): Length of the flattened feature vector (log-mel spectrogram part).
+    """
+    
     results = []
     
     filepath = df_all['filepath'][i] # Audio path
     dataset = df_all['dataset'][i] # Dataset name
     filename = df_all['filename'][i]
-    
     label = df_all['label'][i]
     age = df_all['age'][i]
     gender = df_all['gender'][i]
