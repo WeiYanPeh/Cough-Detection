@@ -3,3 +3,5 @@
 *.pdf
 models/
 slides/
+data_testing/
+data_testing_results/
