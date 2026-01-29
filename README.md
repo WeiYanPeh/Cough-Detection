@@ -101,10 +101,11 @@ Run notebooks:
     main_A5_onset_plot_audio.ipynb
     ```
 
+Run onset_dectection_whisper.ipynb for final
+
 10. Check if GPU is detected in TF, Keras, Torch
     ```bash
     main_check_gpu.ipynb
     ```
 
 This ensures a smooth workflow from data preparation to final classification.
-
